@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --pink:#ff4ecd;
+  --blue:#00e5ff;
+  --yellow:#ffeb3b;
+  --purple:#7c4dff;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Segoe UI,sans-serif;
+  background:linear-gradient(120deg,#0f0c29,#302b63,#24243e);
+  color:white;
+  min-height:100vh;
+}
+
+.container{
+  max-width:420px;
+  margin:40px auto;
+  padding:25px;
+  background:rgba(255,255,255,.1);
+  border-radius:20px;
+  backdrop-filter:blur(12px);
+}
+
+h1{
+  text-align:center;
+  background:linear-gradient(90deg,var(--pink),var(--blue));
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.field{
+  margin-bottom:16px;
+  opacity:0;
+  transform:translateY(20px);
+  transition:.4s;
+}
+.field.active{
+  opacity:1;
+  transform:translateY(0);
+}
+
+input,select,button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:rgba(255,255,255,.15);
+  color:white;
+  font-size:15px;
+}
+input::placeholder{color:#ddd}
+select option{color:black}
+
+button{
+  margin-top:10px;
+  background:linear-gradient(90deg,var(--pink),var(--purple));
+  cursor:pointer;
+  display:none;
+}
+
+/* COURSE COLOR */
+.select-html{box-shadow:0 0 15px var(--pink)}
+.select-css{box-shadow:0 0 15px var(--blue)}
+.select-js{box-shadow:0 0 15px var(--yellow)}
+
+.students{
+  margin-top:20px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr); /* 2-column layout */
+  gap:20px;
+}
+
+@media (max-width:500px){
+  .students{grid-template-columns:1fr;} /* 1 column on small screens */
+}
+
+.card{
+  background:rgba(255,255,255,.12);
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:12px;
+}
+.card b{color:var(--blue)}
+.card button{
+  display:block;
+  margin-top:6px;
+}
+.del{
+  background:linear-gradient(90deg,#ff5252,#ff1744);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Student Registration</h1>
+
+<form id="form">
+  <div class="field active" id="f1">
+    <input id="name" placeholder="Enter Name">
+  </div>
+
+  <div class="field" id="f2">
+    <input id="age" type="number" placeholder="Enter Age">
+  </div>
+
+  <div class="field" id="f3">
+    <input id="phone" placeholder="Enter Phone Number">
+  </div>
+
+  <div class="field" id="f4">
+    <input id="email" placeholder="Enter Email">
+  </div>
+
+  <div class="field" id="f5">
+    <select id="course">
+      <option value="">Select Course</option>
+      <option>HTML</option>
+      <option>CSS</option>
+      <option>JavaScript</option>
+    </select>
+  </div>
+
+  <button id="submitBtn">Add Student</button>
+</form>
+
+<div class="students" id="students"></div>
+</div>
+
+<script>
+// Elements
+const nameInput=document.getElementById("name");
+const ageInput=document.getElementById("age");
+const phoneInput=document.getElementById("phone");
+const emailInput=document.getElementById("email");
+const courseInput=document.getElementById("course");
+const submitBtn=document.getElementById("submitBtn");
+const studentsBox=document.getElementById("students");
+
+const f2=document.getElementById("f2");
+const f3=document.getElementById("f3");
+const f4=document.getElementById("f4");
+const f5=document.getElementById("f5");
+
+let students=JSON.parse(localStorage.getItem("students") || "[]");
+let editIndex=null;
+
+// Validation regex
+const nameRegex=/^[A-Za-z ]{1,30}$/;
+const phoneRegex=/^[0-9]{10}$/;
+const emailRegex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Step-by-step validation
+nameInput.oninput=()=>{
+  if(nameRegex.test(nameInput.value)) f2.classList.add("active");
+  else f2.classList.remove("active");
+};
+
+ageInput.oninput=()=>{
+  if(ageInput.value>=10 && ageInput.value<=99) f3.classList.add("active");
+  else f3.classList.remove("active");
+};
+
+phoneInput.oninput=()=>{
+  if(phoneRegex.test(phoneInput.value)) f4.classList.add("active");
+  else f4.classList.remove("active");
+};
+
+emailInput.oninput=()=>{
+  if(emailRegex.test(emailInput.value)) f5.classList.add("active");
+  else f5.classList.remove("active");
+};
+
+courseInput.onchange=()=>{
+  courseInput.className="";
+  if(courseInput.value==="HTML") courseInput.classList.add("select-html");
+  if(courseInput.value==="CSS") courseInput.classList.add("select-css");
+  if(courseInput.value==="JavaScript") courseInput.classList.add("select-js");
+  if(courseInput.value) submitBtn.style.display="block";
+  else submitBtn.style.display="none";
+};
+
+// Render students
+function render(){
+  studentsBox.innerHTML="";
+  students.forEach((s,i)=>{
+    studentsBox.innerHTML+=`
+      <div class="card">
+        <b>${s.name}</b><br>
+        Age: ${s.age}<br>
+        Phone: ${s.phone}<br>
+        Email: ${s.email}<br>
+        Course: ${s.course}
+        <button onclick="editStudent(${i})">Edit</button>
+        <button class="del" onclick="deleteStudent(${i})">Delete</button>
+      </div>
+    `;
+  });
+}
+
+// Edit student
+function editStudent(i){
+  const s=students[i];
+  nameInput.value=s.name;
+  ageInput.value=s.age;
+  phoneInput.value=s.phone;
+  emailInput.value=s.email;
+  courseInput.value=s.course;
+
+  f2.classList.add("active");
+  f3.classList.add("active");
+  f4.classList.add("active");
+  f5.classList.add("active");
+
+  submitBtn.style.display="block";
+  submitBtn.innerText="Update Student";
+  editIndex=i;
+}
+
+// Delete student
+function deleteStudent(i){
+  if(confirm("Delete this student?")){
+    students.splice(i,1);
+    localStorage.setItem("students",JSON.stringify(students));
+    render();
+  }
+}
+
+// Reset form
+function resetForm(){
+  form.reset();
+  submitBtn.style.display="none";
+  [f2,f3,f4,f5].forEach(f=>f.classList.remove("active"));
+  courseInput.className="";
+  editIndex=null;
+}
+
+// Submit
+form.onsubmit=e=>{
+  e.preventDefault();
+  
+  // Validate all inputs
+  if(!nameRegex.test(nameInput.value)){
+    alert("Name invalid (only letters & max 30 chars)");
+    return;
+  }
+  if(ageInput.value<10 || ageInput.value>99){
+    alert("Age must be 10-99");
+    return;
+  }
+  if(!phoneRegex.test(phoneInput.value)){
+    alert("Phone must be 10 digits");
+    return;
+  }
+  if(!emailRegex.test(emailInput.value)){
+    alert("Email invalid");
+    return;
+  }
+  if(!courseInput.value){
+    alert("Select a course");
+    return;
+  }
+
+  const data={
+    name:nameInput.value,
+    age:ageInput.value,
+    phone:phoneInput.value,
+    email:emailInput.value,
+    course:courseInput.value
+  };
+
+  if(editIndex!==null){
+    students[editIndex]=data;
+    submitBtn.innerText="Add Student";
+  }else{
+    students.push(data);
+  }
+
+  localStorage.setItem("students",JSON.stringify(students));
+  render();
+  resetForm();
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
